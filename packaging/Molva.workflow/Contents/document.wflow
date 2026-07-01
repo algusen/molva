@@ -59,7 +59,6 @@
                 <string>Run Shell Script</string>
                 <key>ActionParameters</key>
                 <dict>
-                    <!-- Пути к файлам приходят через stdin, по одному на строку -->
                     <key>COMMAND_STRING</key>
                     <string>VENV_BIN="__VENV_BIN__"
 while IFS= read -r file; do
@@ -134,7 +133,7 @@ done</string>
         <key>serviceProcessesInput</key>
         <integer>0</integer>
         <key>workflowTypeIdentifier</key>
-        <string>com.apple.automator.servicesMenu</string>
+        <string>com.apple.automator.quickaction</string>
     </dict>
 </dict>
 </plist>

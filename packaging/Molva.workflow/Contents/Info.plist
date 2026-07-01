@@ -3,6 +3,14 @@
   "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.algusen.molva.quickaction</string>
+    <key>CFBundleName</key>
+    <string>Molva</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
     <key>NSServices</key>
     <array>
         <dict>
@@ -13,14 +21,6 @@
             </dict>
             <key>NSMessage</key>
             <string>runWorkflowAsService</string>
-            <key>NSPortName</key>
-            <string>Molva</string>
-            <key>NSRequiredContext</key>
-            <dict>
-                <key>NSApplicationIdentifier</key>
-                <string>com.apple.finder</string>
-            </dict>
-            <!-- Принимаем аудио и видео файлы -->
             <key>NSSendFileTypes</key>
             <array>
                 <string>public.audio</string>

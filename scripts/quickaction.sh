@@ -12,11 +12,12 @@ WORKFLOW_DST="${SERVICES_DIR}/Molva.workflow"
 VENV_BIN=$(cd "${SCRIPT_DIR}/../.venv/bin" 2>/dev/null && pwd -P) \
     || { echo "Ошибка: .venv не найден. Запустите install.sh сначала." >&2; exit 1; }
 
+LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister
+
 _reload_services() {
-    # Просим Finder перечитать сервисы без перезапуска
-    /System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/\
-LaunchServices.framework/Versions/A/Support/lsregister \
-        -kill -r -domain local -domain system -domain user 2>/dev/null || true
+    # Регистрируем только наш бандл, затем перезагружаем сервисы
+    "$LSREGISTER" -f "$WORKFLOW_DST" 2>/dev/null || true
+    "$LSREGISTER" -r -domain user 2>/dev/null || true
     killall -HUP Finder 2>/dev/null || true
 }
 
