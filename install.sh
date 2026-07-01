@@ -127,12 +127,16 @@ else
   "${PROJECT_DIR}/scripts/launchd.sh" install
 fi
 
+# ── 9. Finder Quick Action ────────────────────────────────────────────────────
+info "Устанавливаю Quick Action для Finder…"
+"${PROJECT_DIR}/scripts/quickaction.sh" install
+
 # ── готово ────────────────────────────────────────────────────────────────────
 echo ""
 echo "${BOLD}${GREEN}Готово!${RESET} Molva установлена."
 echo ""
 echo "Использование:"
-echo "  molva file.mp4            — транскрибировать файл"
+echo "  molva file.mp4                   — транскрибировать файл"
 echo "  molva --backend gigaam file.mp4  — форсировать модель (без демона)"
 echo "  molva daemon status       — статус демона"
 echo "  molva health              — проверить /health"
