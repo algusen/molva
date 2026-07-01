@@ -1,0 +1,22 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+*.log
+.DS_Store
+~/.pisar/
+
+# Локальные веса модели (большие бинарные файлы)
+models/
+
+# Claude Code локальные настройки
+.claude/settings.local.json
+
+# Тестовые медиафайлы
+test.mp4
+verify_model.py
