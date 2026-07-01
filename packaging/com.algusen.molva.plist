@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+    <key>Label</key>
+    <string>com.algusen.molva</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>__VENV_BIN__/molva-daemon</string>
+    </array>
+
+    <!-- Запускать при логине и перезапускать при падении -->
+    <key>RunAtLoad</key>
+    <true/>
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>__VENV_BIN__:/usr/local/bin:/usr/bin:/bin</string>
+        <key>MOLVA_BACKEND</key>
+        <string>gigaam</string>
+        <key>MOLVA_MODEL_PATH</key>
+        <string>__MODEL_PATH__</string>
+    </dict>
+
+    <key>StandardOutPath</key>
+    <string>__LOG_DIR__/launchd.out</string>
+    <key>StandardErrorPath</key>
+    <string>__LOG_DIR__/launchd.err</string>
+
+    <!-- Не флудить при crash-loop: ждать 10 с перед рестартом -->
+    <key>ThrottleInterval</key>
+    <integer>10</integer>
+
+</dict>
+</plist>
