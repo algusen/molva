@@ -60,7 +60,7 @@ done
 [[ -n "$PYTHON" ]] || die "Требуется Python 3.11+. Установите: brew install python@3.12"
 ok "Python $($PYTHON --version)"
 
-# ── 3. ffmpeg ─────────────────────────────────────────────────────────────────
+# ── 3. ffmpeg + terminal-notifier ────────────────────────────────────────────
 info "Проверка ffmpeg…"
 if ! command -v ffmpeg &>/dev/null; then
   if command -v brew &>/dev/null; then
@@ -71,6 +71,17 @@ if ! command -v ffmpeg &>/dev/null; then
   fi
 fi
 ok "ffmpeg $(ffmpeg -version 2>&1 | head -1 | awk '{print $3}')"
+
+info "Проверка terminal-notifier…"
+if ! command -v terminal-notifier &>/dev/null; then
+  if command -v brew &>/dev/null; then
+    info "Устанавливаю terminal-notifier через brew…"
+    brew install terminal-notifier
+  else
+    warn "terminal-notifier не найден — уведомления не будут работать. Установите: brew install terminal-notifier"
+  fi
+fi
+command -v terminal-notifier &>/dev/null && ok "terminal-notifier установлен"
 
 # ── 4. Виртуальное окружение ──────────────────────────────────────────────────
 info "Настройка виртуального окружения…"

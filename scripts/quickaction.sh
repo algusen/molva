@@ -1,21 +1,21 @@
 #!/bin/zsh
-# Установка / удаление Finder Quick Action «Molva — транскрибировать».
+# Установка / удаление Finder Quick Action «Molva transcriber».
 # Использование:
 #   ./scripts/quickaction.sh install
 #   ./scripts/quickaction.sh uninstall
 set -euo pipefail
 
 SCRIPT_DIR="${0:A:h}"
-WORKFLOW_SRC="${SCRIPT_DIR}/../packaging/Molva.workflow"
+WORKFLOW_NAME="Molva transcriber.workflow"
+WORKFLOW_SRC="${SCRIPT_DIR}/../packaging/${WORKFLOW_NAME}"
 SERVICES_DIR="$HOME/Library/Services"
-WORKFLOW_DST="${SERVICES_DIR}/Molva.workflow"
+WORKFLOW_DST="${SERVICES_DIR}/${WORKFLOW_NAME}"
 VENV_BIN=$(cd "${SCRIPT_DIR}/../.venv/bin" 2>/dev/null && pwd -P) \
     || { echo "Ошибка: .venv не найден. Запустите install.sh сначала." >&2; exit 1; }
 
 LSREGISTER=/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister
 
 _reload_services() {
-    # Регистрируем только наш бандл, затем перезагружаем сервисы
     "$LSREGISTER" -f "$WORKFLOW_DST" 2>/dev/null || true
     "$LSREGISTER" -r -domain user 2>/dev/null || true
     killall -HUP Finder 2>/dev/null || true
@@ -25,7 +25,6 @@ cmd_install() {
     echo "→ Устанавливаю Quick Action…"
     mkdir -p "$SERVICES_DIR"
 
-    # Копируем бандл из packaging/
     rm -rf "$WORKFLOW_DST"
     cp -R "$WORKFLOW_SRC" "$WORKFLOW_DST"
 
@@ -35,7 +34,7 @@ cmd_install() {
 
     _reload_services
     echo "✓ Quick Action установлен: ${WORKFLOW_DST}"
-    echo "  Finder перезагружен. Откройте аудио/видео файл → ПКМ → Быстрые действия → «Molva — транскрибировать»"
+    echo "  ПКМ по аудио/видео файлу → Services → «Molva transcriber»"
 }
 
 cmd_uninstall() {
