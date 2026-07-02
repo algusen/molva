@@ -17,6 +17,17 @@ models/
 # Claude Code локальные настройки
 .claude/settings.local.json
 
-# Тестовые медиафайлы
+# Тестовые медиафайлы и артефакты разработки
 test.mp4
+test.txt
 verify_model.py
+
+# Внутренние планировочные документы
+PLAN.md
+PLAN_UPDATE.md
+PLAN_old.md
+CONTRACT.md
+PROJECT.md
+
+# Устаревшие скрипты
+scripts/run_daemon.sh
