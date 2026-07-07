@@ -8,7 +8,7 @@
 
 - Транскрибация аудио и видео файлов (WAV, MP3, MP4, MOV, MKV и др.)
 - Вывод в форматах TXT, SRT, VTT, JSON (sidecar рядом с файлом)
-- Правый клик в Finder → «Molva transcriber» + уведомление о готовности
+- Правый клик в Finder → Quick Actions → «Molva transcriber» + уведомление о готовности
 - Тёплый демон — модель загружается один раз, повторные запросы выполняются быстро
 - Автозапуск демона через launchd
 
@@ -69,7 +69,7 @@ molva --backend gigaam --no-daemon file.mp4
 
 ### Finder
 
-Правый клик по аудио или видео файлу → **Services → Molva transcriber**
+Правый клик по аудио или видео файлу → **Quick Actions → Molva transcriber**
 
 При запуске появится уведомление «Транскрибирую…», по завершении — «Готово».
 Логи: `~/Library/Logs/Molva/quickaction.log`
@@ -154,3 +154,48 @@ molva/
 **Модель**: [ai-sage/GigaAM-v3](https://huggingface.co/ai-sage/GigaAM-v3), revision `e2e_rnnt`  
 **VAD**: silero-vad 5.1+ (автоматическая нарезка длинных файлов по тишине)  
 **Демон**: FastAPI + uvicorn, слушает только `127.0.0.1:18080`
+
+## Добавление новых моделей
+
+Molva поддерживает подключение дополнительных транскрайберов через интерфейс `Transcriber` в [`src/molva/transcriber/base.py`](src/molva/transcriber/base.py).
+
+### Шаги
+
+**1. Реализуйте класс транскрайбера:**
+
+```python
+# src/molva/transcriber/mymodel.py
+from .base import Transcriber, Segment
+
+class MyModelTranscriber(Transcriber):
+    def __init__(self, model_path: str, device: str = "mps"):
+        # загрузка модели
+        ...
+
+    def transcribe(self, audio: "np.ndarray", sample_rate: int, language: str) -> list[Segment]:
+        # возвращает список Segment(start, end, text)
+        ...
+```
+
+**2. Зарегистрируйте бэкенд в фабрике** (`src/molva/api.py`, функция `_make_transcriber`):
+
+```python
+elif cfg.backend == "mymodel":
+    from .transcriber.mymodel import MyModelTranscriber
+    return MyModelTranscriber(cfg.model_path, cfg.device)
+```
+
+**3. Скачайте веса модели** в `models/` (путь задаётся через `--model-path` или конфиг).
+
+**4. Запустите с новым бэкендом:**
+
+```zsh
+molva --backend mymodel --no-daemon file.mp4
+```
+
+### Встроенные бэкенды
+
+| Бэкенд | Описание |
+|--------|----------|
+| `gigaam` | GigaAM-v3 (русский, Apple Silicon MPS) |
+| `stub` | Заглушка для тестов, не требует модели |
