@@ -8,7 +8,8 @@ from __future__ import annotations
 import logging
 
 import uvicorn
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Request, UploadFile
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
@@ -48,6 +49,13 @@ class HealthResponse(BaseModel):
     version: str
 
 
+class UploadTranscribeResponse(BaseModel):
+    status: str = "done"
+    language: str
+    text: str
+    segments: list[SegmentOut]
+
+
 class ErrorResponse(BaseModel):
     error: str
     detail: str
@@ -67,9 +75,27 @@ def _make_transcriber(cfg: Config) -> Transcriber:
     return StubTranscriber()
 
 
-def create_app(service: MolvaService) -> FastAPI:
-    app = FastAPI(title="Molva")
+def _make_auth(api_key: str):
+    """Возвращает FastAPI Depends-зависимость для проверки X-API-Key."""
+    def check(x_api_key: str | None = Header(default=None)) -> None:
+        if api_key and x_api_key != api_key:
+            raise HTTPException(status_code=401, detail="Invalid or missing X-API-Key")
+    return Depends(check)
+
+
+def create_app(service: MolvaService, api_key: str = "", cors_origins: tuple[str, ...] = ()) -> FastAPI:
+    app = FastAPI(title="Molva", version="0.1.0")
     app.state.service = service
+
+    if cors_origins:
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=list(cors_origins),
+            allow_methods=["GET", "POST"],
+            allow_headers=["X-API-Key", "Content-Type"],
+        )
+
+    auth = _make_auth(api_key)
 
     @app.get("/health", response_model=HealthResponse)
     def health() -> HealthResponse:
@@ -78,7 +104,7 @@ def create_app(service: MolvaService) -> FastAPI:
             status=h.status, backend=h.backend, model_loaded=h.model_loaded, version=h.version
         )
 
-    @app.post("/transcribe", response_model=TranscribeResponse)
+    @app.post("/transcribe", response_model=TranscribeResponse, dependencies=[auth])
     def transcribe(req: TranscribeRequest) -> TranscribeResponse:
         result = service.transcribe(req.path, req.formats, req.language)
         return TranscribeResponse(
@@ -86,6 +112,21 @@ def create_app(service: MolvaService) -> FastAPI:
             outputs=result.outputs,
             duration_sec=result.duration_sec,
             segments=[SegmentOut(start=s.start, end=s.end, text=s.text) for s in result.segments],
+        )
+
+    @app.post("/transcribe/upload", response_model=UploadTranscribeResponse, dependencies=[auth])
+    async def transcribe_upload(
+        file: UploadFile = File(..., description="WAV/MP3/MP4 аудиофайл"),
+        language: str = "ru",
+        vad: bool = True,
+    ) -> UploadTranscribeResponse:
+        data = await file.read()
+        segments = service.transcribe_bytes(data, language=language, use_vad=vad)
+        text = " ".join(s.text for s in segments).strip()
+        return UploadTranscribeResponse(
+            language=language,
+            text=text,
+            segments=[SegmentOut(start=s.start, end=s.end, text=s.text) for s in segments],
         )
 
     @app.exception_handler(BadRequestError)
@@ -124,7 +165,7 @@ def build_default_app(config: Config | None = None) -> FastAPI:
         notify=cfg.notify,
         clipboard=cfg.clipboard,
     )
-    return create_app(service)
+    return create_app(service, api_key=cfg.api_key, cors_origins=cfg.cors_origins)
 
 
 def _setup_logging(cfg: Config) -> None:

@@ -27,6 +27,12 @@ class Config:
     # None = загрузить из HuggingFace Hub (требует интернет при первом запуске).
     model_path: Path | None = None
     model_revision: str = "e2e_rnnt"
+    # Сетевой API: если задан — все эндпоинты /transcribe/* требуют X-API-Key.
+    # Пустая строка = аутентификация отключена (только локальная разработка).
+    api_key: str = ""
+    # CORS: список разрешённых origins через запятую (например "https://app.example.com").
+    # Пустая строка = CORS отключён.
+    cors_origins: tuple[str, ...] = ()
 
 
 def _parse_bool(value: str) -> bool:
@@ -53,6 +59,8 @@ _ENV_PARSERS = {
     "clipboard": _parse_bool,
     "model_path": _parse_optional_path,
     "model_revision": str,
+    "api_key": str,
+    "cors_origins": _parse_formats,
 }
 
 
@@ -65,7 +73,7 @@ def _load_file_overrides(config_path: Path) -> dict:
     for field in fields(Config):
         if field.name in data:
             value = data[field.name]
-            if field.name == "default_formats" and isinstance(value, list):
+            if field.name in ("default_formats", "cors_origins") and isinstance(value, list):
                 value = tuple(value)
             elif field.name in ("log_dir",):
                 value = Path(value)

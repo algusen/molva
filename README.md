@@ -155,6 +155,122 @@ molva/
 **VAD**: silero-vad 5.1+ (автоматическая нарезка длинных файлов по тишине)  
 **Демон**: FastAPI + uvicorn, слушает только `127.0.0.1:18080`
 
+## REST API для сторонних сервисов
+
+Демон Molva предоставляет HTTP API для транскрибации аудио по сети.
+
+### Настройка сетевого доступа
+
+По умолчанию демон слушает только `127.0.0.1` (localhost). Чтобы открыть доступ по сети, отредактируйте `~/.molva/config.toml`:
+
+```toml
+host = "0.0.0.0"          # слушать на всех интерфейсах
+port = 8765
+api_key = "ваш-секретный-ключ"          # обязательно при сетевом доступе
+cors_origins = ["https://app.example.com"]  # если фронтенд обращается из браузера
+```
+
+Или через переменные окружения:
+
+```zsh
+export MOLVA_HOST=0.0.0.0
+export MOLVA_API_KEY=ваш-секретный-ключ
+molva daemon start
+```
+
+### Эндпоинты
+
+| Метод | Путь | Auth | Описание |
+|-------|------|------|----------|
+| `GET` | `/health` | нет | Статус демона и модели |
+| `POST` | `/transcribe/upload` | X-API-Key | Загрузить файл и получить текст |
+| `POST` | `/transcribe` | X-API-Key | Транскрибировать файл по локальному пути |
+
+### POST /transcribe/upload
+
+Принимает аудио/видео файл как `multipart/form-data`, возвращает транскрипцию.
+
+**Параметры запроса:**
+
+| Поле | Тип | По умолчанию | Описание |
+|------|-----|-------------|----------|
+| `file` | file | — | WAV, MP3, MP4, MOV и др. |
+| `language` | string | `ru` | Язык (сейчас только `ru`) |
+| `vad` | bool | `true` | Нарезать по тишине (false = быстрее для коротких сообщений) |
+
+**Пример — curl:**
+
+```bash
+curl -X POST http://your-server:8765/transcribe/upload \
+  -H "X-API-Key: ваш-секретный-ключ" \
+  -F "file=@meeting.wav" \
+  -F "language=ru" \
+  -F "vad=false"
+```
+
+**Пример — Python:**
+
+```python
+import requests
+
+url = "http://your-server:8765/transcribe/upload"
+headers = {"X-API-Key": "ваш-секретный-ключ"}
+
+with open("voice_message.wav", "rb") as f:
+    response = requests.post(
+        url,
+        headers=headers,
+        files={"file": ("voice_message.wav", f, "audio/wav")},
+        data={"language": "ru", "vad": "false"},
+    )
+
+result = response.json()
+print(result["text"])
+```
+
+**Ответ (200 OK):**
+
+```json
+{
+  "status": "done",
+  "language": "ru",
+  "text": "Привет, это тестовая запись голосового сообщения.",
+  "segments": [
+    {"start": 0.12, "end": 3.45, "text": "Привет, это тестовая запись"},
+    {"start": 3.60, "end": 5.10, "text": "голосового сообщения."}
+  ]
+}
+```
+
+**Ошибки:**
+
+| Код | error | Причина |
+|-----|-------|---------|
+| 401 | — | Неверный или отсутствующий `X-API-Key` |
+| 415 | `unsupported_media` | Формат файла не поддерживается |
+| 422 | `preprocessing_failed` | Ошибка ffmpeg при обработке |
+| 503 | `not_ready` | Модель ещё загружается |
+| 500 | `internal_error` | Внутренняя ошибка |
+
+### GET /health
+
+Не требует аутентификации. Используется для мониторинга.
+
+```bash
+curl http://your-server:8765/health
+```
+
+```json
+{
+  "status": "ready",
+  "backend": "gigaam",
+  "model_loaded": true,
+  "version": "0.1.0"
+}
+```
+
+---
+
 ## Добавление новых моделей
 
 Molva поддерживает подключение дополнительных транскрайберов через интерфейс `Transcriber` в [`src/molva/transcriber/base.py`](src/molva/transcriber/base.py).

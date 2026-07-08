@@ -107,6 +107,35 @@ class MolvaService:
             segments=segments,
         )
 
+    def transcribe_bytes(
+        self,
+        data: bytes,
+        language: str = "ru",
+        use_vad: bool = True,
+    ) -> list[Segment]:
+        """Транскрибировать аудио из байт без записи sidecar (для сетевого API)."""
+        if language not in SUPPORTED_LANGUAGES:
+            raise BadRequestError(f"неподдерживаемый language: {language}")
+        if not self._ready:
+            raise NotReadyError("модель ещё не загружена")
+
+        with self._lock:
+            tmp_dir = tempfile.mkdtemp(prefix="molva-upload-")
+            try:
+                raw_path = Path(tmp_dir) / "upload.wav"
+                raw_path.write_bytes(data)
+                audio.probe(str(raw_path))  # UnsupportedMediaError / FileNotFoundError
+                wav_path = audio.to_wav16k_mono(str(raw_path), out_dir=tmp_dir)
+                if use_vad:
+                    intervals = vad.detect_speech_intervals(wav_path)
+                    segments = self._transcribe_intervals(wav_path, intervals, language, tmp_dir)
+                else:
+                    segments = list(self._transcriber.transcribe(wav_path, language))
+            finally:
+                shutil.rmtree(tmp_dir, ignore_errors=True)
+
+        return segments
+
     def _transcribe_intervals(
         self,
         wav_path: str,
